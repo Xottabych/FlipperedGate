@@ -11,4 +11,5 @@ App(
     fap_author="FlipperedGate",
     fap_icon="images/GateApp.png",
     fap_icon_assets="images",
+    
 )
