@@ -69,12 +69,12 @@ void scene_success_on_enter(void* context) {
     bool is_dup   = (!is_error && signal_capture_is_duplicate(app));
 
     with_view_model(
-        app->view_success, SuccessModel*, m, {
+        app->view_success, SuccessModel* m, {
             m->saved    = false;
             m->is_error = is_error || is_dup;
             if(m->is_error) {
                 if(is_dup) {
-                    snprintf(m->path_str, sizeof(m->path_str), "Duplicate signal,\nskipping save.");
+                    snprintf(m->path_str, sizeof(m->path_str), "Duplicate signal");
                 } else {
                     snprintf(m->path_str, sizeof(m->path_str),
                              strlen(app->save_path) > 0 ? app->save_path : "Signal too short.");
@@ -101,22 +101,18 @@ bool scene_success_on_event(void* context, SceneManagerEvent event) {
     if(event.event == AppCustomEventSaveOk) {
         bool ok = file_manager_save(app);
         with_view_model(
-            app->view_success, SuccessModel*, m, {
+            app->view_success, SuccessModel* m, {
                 m->saved    = ok;
                 m->is_error = !ok;
                 if(ok) {
-                    /* Show only filename portion */
                     const char* slash = strrchr(app->save_path, '/');
                     snprintf(m->path_str, sizeof(m->path_str), "%s",
                              slash ? slash + 1 : app->save_path);
                 } else {
-                    snprintf(m->path_str, sizeof(m->path_str), "Save failed!\nNo SD card?");
+                    snprintf(m->path_str, sizeof(m->path_str), "Save failed! No SD?");
                 }
             },
             true);
-
-        /* Auto-return to main menu after short delay */
-        furi_delay_ms(1500);
         scene_manager_search_and_switch_to_previous_scene(
             app->scene_manager, SceneMainMenu);
         return true;

@@ -19,11 +19,7 @@ static bool app_navigation_cb(void* context) {
 
 static bool app_custom_event_cb(void* context, uint32_t custom_event) {
     AppState* app = context;
-    return scene_manager_handle_custom_event(
-        app->scene_manager, (SceneManagerEvent){
-            .type  = SceneManagerEventTypeCustom,
-            .event = custom_event,
-        });
+    return scene_manager_handle_custom_event(app->scene_manager, custom_event);
 }
 
 /* ── Scan timer callback (posts to main thread) ─────────────────────────── */
@@ -60,7 +56,6 @@ AppState* app_alloc(void) {
 
     /* View dispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, app_navigation_cb);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, app_custom_event_cb);

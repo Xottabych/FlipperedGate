@@ -27,12 +27,30 @@ void scene_settings_on_enter(void* context);
 bool scene_settings_on_event(void* context, SceneManagerEvent event);
 void scene_settings_on_exit(void* context);
 
+static void (*const scene_on_enter_handlers[])(void*) = {
+    [SceneMainMenu] = scene_main_menu_on_enter,
+    [SceneScanning] = scene_scanning_on_enter,
+    [SceneSuccess]  = scene_success_on_enter,
+    [SceneSettings] = scene_settings_on_enter,
+};
+
+static bool (*const scene_on_event_handlers[])(void*, SceneManagerEvent) = {
+    [SceneMainMenu] = scene_main_menu_on_event,
+    [SceneScanning] = scene_scanning_on_event,
+    [SceneSuccess]  = scene_success_on_event,
+    [SceneSettings] = scene_settings_on_event,
+};
+
+static void (*const scene_on_exit_handlers[])(void*) = {
+    [SceneMainMenu] = scene_main_menu_on_exit,
+    [SceneScanning] = scene_scanning_on_exit,
+    [SceneSuccess]  = scene_success_on_exit,
+    [SceneSettings] = scene_settings_on_exit,
+};
+
 static const SceneManagerHandlers scene_event_handlers = {
-    .handlers = {
-        [SceneMainMenu] = {scene_main_menu_on_enter, scene_main_menu_on_event, scene_main_menu_on_exit},
-        [SceneScanning] = {scene_scanning_on_enter,  scene_scanning_on_event,  scene_scanning_on_exit},
-        [SceneSuccess]  = {scene_success_on_enter,   scene_success_on_event,   scene_success_on_exit},
-        [SceneSettings] = {scene_settings_on_enter,  scene_settings_on_event,  scene_settings_on_exit},
-    },
-    .scene_num = SceneCount,
+    .on_enter_handlers = scene_on_enter_handlers,
+    .on_event_handlers = scene_on_event_handlers,
+    .on_exit_handlers  = scene_on_exit_handlers,
+    .scene_num         = SceneCount,
 };

@@ -17,7 +17,6 @@ typedef struct {
 } FreqEntry;
 
 typedef struct FrequencyScanner {
-    CC1101Handle_unused* _unused; /* placeholder — scanner uses AppState directly */
     ScannerState state;
     uint8_t      freq_count;
     uint8_t      freq_index;
