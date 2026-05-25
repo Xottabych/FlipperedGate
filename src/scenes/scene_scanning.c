@@ -75,7 +75,7 @@ void scene_scanning_on_enter(void* context) {
     }
 
     with_view_model(
-        app->view_scanning, ScanningModel*, m, {
+        app->view_scanning, ScanningModel* m, {
             m->freq_mhz   = app->current_freq_mhz;
             m->rssi       = -120;
             m->freq_index = 0;
@@ -119,7 +119,7 @@ bool scene_scanning_on_event(void* context, SceneManagerEvent event) {
         }
 
         with_view_model(
-            app->view_scanning, ScanningModel*, m, {
+            app->view_scanning, ScanningModel* m, {
                 m->freq_mhz   = app->current_freq_mhz;
                 m->rssi       = app->current_rssi;
                 m->freq_index = app->freq_index;
@@ -135,7 +135,7 @@ bool scene_scanning_on_event(void* context, SceneManagerEvent event) {
         /* Scanner locked — start raw capture */
         signal_capture_start(app);
         with_view_model(
-            app->view_scanning, ScanningModel*, m, {
+            app->view_scanning, ScanningModel* m, {
                 snprintf(m->status, sizeof(m->status), "LOCKED  %.3f MHz",
                          (double)app->current_freq_mhz);
             },

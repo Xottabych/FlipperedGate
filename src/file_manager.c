@@ -55,9 +55,7 @@ bool file_manager_save(AppState* app) {
     }
 
     /* Build timestamped filename */
-    DateTime dt;
-    furi_hal_rtc_get_datetime(&dt);
-    uint32_t ts = furi_hal_rtc_datetime_to_timestamp(&dt);
+    uint32_t ts = furi_hal_rtc_get_timestamp();
 
     file_manager_make_filename(
         app->current_freq_mhz, ts, app->save_path, sizeof(app->save_path));
