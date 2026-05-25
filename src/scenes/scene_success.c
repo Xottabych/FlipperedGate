@@ -6,7 +6,7 @@
 typedef struct {
     char freq_str[24];
     char pulse_str[24];
-    char path_str[64];
+    char path_str[128];
     bool is_error;
     bool saved;
 } SuccessModel;
