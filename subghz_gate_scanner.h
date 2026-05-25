@@ -46,6 +46,11 @@ typedef enum {
     FreqRange_315,
 } FreqRange;
 
+typedef enum {
+    AntennaExternal = 0, /* SPI bit-bang CC1101 on GPIO header */
+    AntennaInternal = 1, /* Built-in Flipper CC1101 via furi_hal_subghz */
+} AntennaMode;
+
 typedef struct {
     /* GPIO pins for external CC1101 via SPI bit-bang */
     const GpioPin* pin_mosi; /* Pin 2 PA7 */
@@ -87,8 +92,9 @@ typedef struct {
     bool      edge_level;
 
     /* Settings */
-    int8_t   squelch_threshold;
-    FreqRange freq_range;
+    int8_t     squelch_threshold;
+    FreqRange  freq_range;
+    AntennaMode antenna_mode; /* default = AntennaExternal */
 
     /* Save result path */
     char save_path[128];

@@ -12,6 +12,9 @@ static const char* const freq_range_labels[] = {
 };
 #define FREQ_RANGE_COUNT 3
 
+static const char* const antenna_labels[] = { "External", "Built-in" };
+#define ANTENNA_COUNT 2
+
 /* ── Callbacks ──────────────────────────────────────────────────────────── */
 
 static void rssi_change_cb(VariableItem* item) {
@@ -39,6 +42,14 @@ static void squelch_change_cb(VariableItem* item) {
     char val[8];
     snprintf(val, sizeof(val), "%d", (int)app->squelch_threshold);
     variable_item_set_current_value_text(item, val);
+}
+
+static void antenna_change_cb(VariableItem* item) {
+    AppState* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    if(idx >= ANTENNA_COUNT) idx = 0;
+    app->antenna_mode = (AntennaMode)idx;
+    variable_item_set_current_value_text(item, antenna_labels[idx]);
 }
 
 /* ── Scene callbacks ────────────────────────────────────────────────────── */
@@ -75,6 +86,14 @@ void scene_settings_on_enter(void* context) {
     char sq_str[8];
     snprintf(sq_str, sizeof(sq_str), "%d", (int)app->squelch_threshold);
     variable_item_set_current_value_text(item, sq_str);
+
+    /* Antenna selection */
+    item = variable_item_list_add(
+        list, "Antenna", ANTENNA_COUNT, antenna_change_cb, app);
+    uint8_t ant_idx = (uint8_t)app->antenna_mode;
+    if(ant_idx >= ANTENNA_COUNT) ant_idx = 0;
+    variable_item_set_current_value_index(item, ant_idx);
+    variable_item_set_current_value_text(item, antenna_labels[ant_idx]);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewSettings);
 }

@@ -109,6 +109,10 @@ void cc1101_strobe(AppState* app, uint8_t cmd) {
 /* ── High-level CC1101 API ───────────────────────────────────────────────── */
 
 bool cc1101_ext_init(AppState* app) {
+    /* Enable 5V on GPIO Pin 1 so the external module works on battery */
+    furi_hal_power_enable_otg();
+    furi_delay_ms(15); /* allow voltage to stabilise */
+
     /* Configure GPIO directions */
     furi_hal_gpio_init(app->pin_sck,  GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_init(app->pin_mosi, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
@@ -159,6 +163,9 @@ void cc1101_ext_deinit(AppState* app) {
     furi_hal_gpio_init(app->pin_cs,   GpioModeAnalog, GpioPullNo, GpioSpeedLow);
     furi_hal_gpio_init(app->pin_miso, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
     furi_hal_gpio_init(app->pin_gd0,  GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+
+    /* Cut 5V supply to external module */
+    furi_hal_power_disable_otg();
 }
 
 void cc1101_set_frequency(AppState* app, float freq_mhz) {
