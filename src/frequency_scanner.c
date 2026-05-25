@@ -57,7 +57,6 @@ void freq_scanner_init(AppState* app) {
 
     if(app->antenna_mode == AntennaInternal) {
         furi_hal_subghz_reset();
-        furi_hal_subghz_load_preset(FuriHalSubGhzPresetOok650Async);
         furi_hal_subghz_set_frequency_and_path(table[0].freq_hz);
         furi_hal_subghz_rx();
     } else if(app->cc1101_present) {
