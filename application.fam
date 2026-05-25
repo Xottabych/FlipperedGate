@@ -1,0 +1,13 @@
+App(
+    appid="subghz_gate_scanner",
+    name="Gate Scanner",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="subghz_gate_scanner_app",
+    requires=["gui", "storage"],
+    stack_size=4 * 1024,
+    fap_category="Sub-GHz",
+    fap_version=(1, 0),
+    fap_description="External CC1101 Sub-GHz gate/barrier scanner",
+    fap_author="FlipperedGate",
+    fap_icon="subghz_gate_scanner.png",
+)
