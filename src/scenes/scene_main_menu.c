@@ -3,9 +3,7 @@
 #include "../cc1101_ext.h"
 #include "../frequency_scanner.h"
 
-/* Icon assets generated from images/ by ufbt */
-extern const Icon I_ScanStart_25x27;
-extern const Icon I_SettingsApp_25x27;
+#include "../app_icons.h" /* inline XBM icon data, no fap_icon_assets needed */
 
 typedef enum {
     MenuItemStartScan = 0,

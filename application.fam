@@ -10,6 +10,4 @@ App(
     fap_description="Sub-GHz gate/barrier scanner (external & built-in CC1101)",
     fap_author="FlipperedGate",
     fap_icon="images/GateApp.png",
-    fap_icon_assets="images",
-    
 )
