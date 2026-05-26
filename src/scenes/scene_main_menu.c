@@ -132,9 +132,7 @@ bool scene_main_menu_on_event(void* context, SceneManagerEvent event) {
 
     if(event.event == MenuItemStartScan) {
         if(app->antenna_mode == AntennaExternal) {
-            if(!app->cc1101_present) {
-                app->cc1101_present = cc1101_ext_init(app);
-            }
+            app->cc1101_present = cc1101_ext_init(app);
             if(!app->cc1101_present) {
                 snprintf(
                     app->save_path,

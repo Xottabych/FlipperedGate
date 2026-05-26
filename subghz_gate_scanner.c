@@ -121,6 +121,8 @@ void app_free(AppState* app) {
 
     if(app->cc1101_present) {
         cc1101_ext_deinit(app);
+    } else if(app->antenna_mode == AntennaExternal) {
+        furi_hal_power_disable_otg();
     }
 
     view_dispatcher_remove_view(app->view_dispatcher, AppViewRecent);
