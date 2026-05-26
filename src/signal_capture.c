@@ -68,6 +68,7 @@ void signal_capture_start(AppState* app) {
 
     if(app->antenna_mode == AntennaInternal) {
         /* Radio is already in RX mode from the scanner */
+        app->capture_rx_started = true;
         furi_hal_subghz_start_async_rx(internal_capture_cb, app);
     } else {
         app->last_edge_tick = DWT->CYCCNT;
@@ -82,7 +83,11 @@ void signal_capture_stop(AppState* app) {
     app->capturing = false;
 
     if(app->antenna_mode == AntennaInternal) {
-        furi_hal_subghz_stop_async_rx();
+        /* Guard: stop_async_rx furi_check-fails if RX was never started */
+        if(app->capture_rx_started) {
+            furi_hal_subghz_stop_async_rx();
+            app->capture_rx_started = false;
+        }
     } else {
         furi_hal_gpio_disable_int_callback(app->pin_gd0);
         furi_hal_gpio_remove_int_callback(app->pin_gd0);

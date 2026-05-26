@@ -96,7 +96,10 @@ bool scene_scanning_on_event(void* context, SceneManagerEvent event) {
     /* Back shortcut from input callback */
     if(event.event == (uint32_t)AppCustomEventScanTick + 100) {
         furi_timer_stop(app->scan_timer);
-        freq_scanner_stop(app);
+        /* Radio cleanup happens in on_exit in the correct order:
+           signal_capture_stop (stop async RX) → freq_scanner_stop (idle/sleep).
+           Calling freq_scanner_stop here first would put the radio to sleep
+           while async RX is still active and crash furi_hal. */
         scene_manager_previous_scene(app->scene_manager);
         return true;
     }
