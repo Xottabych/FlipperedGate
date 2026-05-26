@@ -2,65 +2,70 @@
 #include "scene_config.h"
 #include "../cc1101_ext.h"
 #include "../frequency_scanner.h"
-#include "../app_icons.h"
 
-#define MENU_ITEM_COUNT 2
+#define MENU_ITEM_COUNT 3
 
 typedef enum {
     MenuItemStartScan = 0,
-    MenuItemSettings  = 1,
+    MenuItemRecent    = 1,
+    MenuItemSettings  = 2,
 } MenuItem;
 
 typedef struct {
     uint8_t selected;
+    uint8_t antenna_mode;   /* 0=External, 1=Internal */
+    bool    cc1101_present;
 } MenuModel;
 
 /* ── Draw callback ────────────────────────────────────────────────────────── */
 
 static void menu_draw_cb(Canvas* canvas, void* model) {
-    MenuModel* m = model;
+    MenuModel* m = (MenuModel*)model;
 
     canvas_clear(canvas);
-    canvas_set_color(canvas, ColorBlack);
 
-    /* Inverted title bar */
+    /* ── Inverted header bar (y=0..12) ──────────────────────────────────── */
+    canvas_set_color(canvas, ColorBlack);
     canvas_draw_box(canvas, 0, 0, 128, 13);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 11, AlignCenter, AlignBottom, "Flipp the Gate");
+
+    /* CC1101 status indicator — top-right corner of header */
+    canvas_set_font(canvas, FontSecondary);
+    const char* hw_label;
+    if(m->antenna_mode == AntennaInternal) {
+        hw_label = "INT";
+    } else if(m->cc1101_present) {
+        hw_label = "EXT";
+    } else {
+        hw_label = "EXT?";
+    }
+    canvas_draw_str_aligned(canvas, 126, 11, AlignRight, AlignBottom, hw_label);
+
     canvas_set_color(canvas, ColorBlack);
 
-    /* Thin separator between the two items */
-    canvas_draw_line(canvas, 0, 38, 127, 38);
-
-    /* Item data */
-    static const uint8_t* const icons[MENU_ITEM_COUNT] = {
-        I_ScanStart_xbm,
-        I_SettingsApp_xbm,
-    };
+    /* ── 3 menu rows (each 17px tall, starting at y=13) ────────────────── */
     static const char* const labels[MENU_ITEM_COUNT] = {
         "Start Scan",
+        "Recent Files",
         "Settings",
     };
-    /* Top y-coordinate of each item row */
-    static const uint8_t tops[MENU_ITEM_COUNT] = { 14, 39 };
 
     for(uint8_t i = 0; i < MENU_ITEM_COUNT; i++) {
-        uint8_t y   = tops[i];
-        bool    sel = (m->selected == i);
+        uint8_t item_y = 13 + (uint8_t)(i * 17);
+        bool    sel    = (m->selected == i);
 
         if(sel) {
-            /* Highlight with a filled rounded box, then switch to white for content */
-            canvas_draw_rbox(canvas, 0, y, 128, 24, 2);
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_rbox(canvas, 0, item_y, 128, 17, 2);
             canvas_set_color(canvas, ColorWhite);
+        } else {
+            canvas_set_color(canvas, ColorBlack);
         }
 
-        /* Icon — draw first 22 rows of the 25×27 XBM, centred vertically */
-        canvas_draw_xbm(canvas, 3, y + 1, I_ScanStart_W, 22, icons[i]);
-
-        /* Label */
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 33, y + 16, labels[i]);
+        canvas_draw_str_aligned(canvas, 64, item_y + 12, AlignCenter, AlignBottom, labels[i]);
 
         canvas_set_color(canvas, ColorBlack);
     }
@@ -112,7 +117,11 @@ void scene_main_menu_on_enter(void* context) {
     with_view_model(
         app->view_main_menu,
         MenuModel* m,
-        { m->selected = 0; },
+        {
+            m->selected      = 0;
+            m->antenna_mode  = (uint8_t)app->antenna_mode;
+            m->cc1101_present = app->cc1101_present;
+        },
         true);
     view_dispatcher_switch_to_view(app->view_dispatcher, AppViewMainMenu);
 }
@@ -136,8 +145,13 @@ bool scene_main_menu_on_event(void* context, SceneManagerEvent event) {
             }
         }
         freq_scanner_start(app);
-        furi_timer_start(app->scan_timer, furi_ms_to_ticks(FREQ_SCANNER_DWELL_MS));
+        furi_timer_start(app->scan_timer, furi_ms_to_ticks(app->dwell_ms));
         scene_manager_next_scene(app->scene_manager, SceneScanning);
+        return true;
+    }
+
+    if(event.event == MenuItemRecent) {
+        scene_manager_next_scene(app->scene_manager, SceneRecent);
         return true;
     }
 

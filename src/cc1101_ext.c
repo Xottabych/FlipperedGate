@@ -1,7 +1,7 @@
 #include "cc1101_ext.h"
 
-/* Default OOK 650 baud async config (matches FuriHalSubGhzPresetOok650Async) */
-static const uint8_t cc1101_default_regs[][2] = {
+/* OOK 650 baud async config (matches FuriHalSubGhzPresetOok650Async) */
+static const uint8_t cc1101_ook_regs[][2] = {
     {CC1101_IOCFG0,   0x0D}, /* GD0: assert on carrier sense / RSSI above threshold */
     {CC1101_FIFOTHR,  0x47},
     {CC1101_PKTCTRL0, 0x32}, /* infinite packet length, async serial mode */
@@ -18,6 +18,35 @@ static const uint8_t cc1101_default_regs[][2] = {
     {CC1101_AGCCTRL0, 0x91},
     {CC1101_FREND1,   0x56},
     {CC1101_FREND0,   0x11},
+    {CC1101_FSCAL3,   0xE9},
+    {CC1101_FSCAL2,   0x2A},
+    {CC1101_FSCAL1,   0x00},
+    {CC1101_FSCAL0,   0x1F},
+    {CC1101_TEST2,    0x81},
+    {CC1101_TEST1,    0x35},
+    {CC1101_TEST0,    0x09},
+    {0xFF, 0xFF}, /* sentinel */
+};
+
+/* 2-FSK ~4.8 kBaud, 47 kHz deviation */
+static const uint8_t cc1101_fsk_regs[][2] = {
+    {CC1101_IOCFG0,   0x0D},
+    {CC1101_FIFOTHR,  0x47},
+    {CC1101_PKTCTRL0, 0x32},
+    {CC1101_FSCTRL1,  0x06},
+    {CC1101_MDMCFG4,  0xCA},
+    {CC1101_MDMCFG3,  0x83},
+    {CC1101_MDMCFG2,  0x00}, /* 2-FSK, no sync word */
+    {CC1101_MDMCFG1,  0x22},
+    {CC1101_MDMCFG0,  0xF8},
+    {CC1101_DEVIATN,  0x47}, /* ~47 kHz deviation */
+    {CC1101_MCSM0,    0x18},
+    {CC1101_FOCCFG,   0x1D},
+    {CC1101_AGCCTRL2, 0x03},
+    {CC1101_AGCCTRL1, 0x40},
+    {CC1101_AGCCTRL0, 0x91},
+    {CC1101_FREND1,   0x56},
+    {CC1101_FREND0,   0x10},
     {CC1101_FSCAL3,   0xE9},
     {CC1101_FSCAL2,   0x2A},
     {CC1101_FSCAL1,   0x00},
@@ -144,13 +173,21 @@ bool cc1101_ext_init(AppState* app) {
         return false;
     }
 
-    /* Write default register configuration */
-    for(size_t i = 0; cc1101_default_regs[i][0] != 0xFF; i++) {
-        cc1101_write_reg(app, cc1101_default_regs[i][0], cc1101_default_regs[i][1]);
-    }
+    /* Write modulation-appropriate register configuration */
+    cc1101_apply_modulation(app);
 
     FURI_LOG_I("CC1101", "External CC1101 initialised OK");
     return true;
+}
+
+void cc1101_apply_modulation(AppState* app) {
+    const uint8_t(*regs)[2] =
+        (app->modulation == ModFSK) ? cc1101_fsk_regs : cc1101_ook_regs;
+    cc1101_strobe(app, CC1101_SIDLE);
+    furi_delay_us(100);
+    for(size_t i = 0; regs[i][0] != 0xFF; i++) {
+        cc1101_write_reg(app, regs[i][0], regs[i][1]);
+    }
 }
 
 void cc1101_ext_deinit(AppState* app) {

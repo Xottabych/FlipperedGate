@@ -8,7 +8,7 @@ void file_manager_make_filename(float freq_mhz, uint32_t ts, char* buf, size_t l
              (unsigned long)mhz_frac, (unsigned long)ts);
 }
 
-bool file_manager_write_header(File* file, uint32_t freq_hz) {
+bool file_manager_write_header(File* file, uint32_t freq_hz, bool is_fsk) {
     char line[64];
     const char* hdr =
         "Filetype: Flipper SubGhz RAW File\n"
@@ -18,9 +18,11 @@ bool file_manager_write_header(File* file, uint32_t freq_hz) {
     int n = snprintf(line, sizeof(line), "Frequency: %lu\n", (unsigned long)freq_hz);
     if(!storage_file_write(file, line, (uint16_t)n)) return false;
 
-    const char* preset =
-        "Preset: FuriHalSubGhzPresetOok650Async\n"
-        "Protocol: RAW\n";
+    const char* preset = is_fsk
+        ? "Preset: FuriHalSubGhzPreset2FSKDev476Async\n"
+          "Protocol: RAW\n"
+        : "Preset: FuriHalSubGhzPresetOok650Async\n"
+          "Protocol: RAW\n";
     return storage_file_write(file, preset, strlen(preset)) > 0;
 }
 
@@ -70,7 +72,7 @@ bool file_manager_save(AppState* app) {
         return false;
     }
 
-    ok = file_manager_write_header(file, app->capture_freq_hz)
+    ok = file_manager_write_header(file, app->capture_freq_hz, app->modulation == ModFSK)
       && file_manager_write_raw_data(file, app->capture_buf, app->capture_len);
 
     storage_file_close(file);

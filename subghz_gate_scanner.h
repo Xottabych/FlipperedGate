@@ -7,6 +7,7 @@
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 #include <gui/modules/variable_item_list.h>
+#include <gui/modules/submenu.h>
 #include <gui/canvas.h>
 #include <gui/elements.h>
 #include <storage/storage.h>
@@ -14,6 +15,8 @@
 #include <furi_hal_resources.h>
 #include <furi_hal_rtc.h>
 #include <furi_hal_cortex.h>
+#include <notification/notification.h>
+#include <notification/notification_messages.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -22,12 +25,17 @@
 
 #define CAPTURE_BUFFER_SIZE 512
 #define SUBGHZ_OUTPUT_DIR   "/ext/subghz"
+#define RECENT_FILES_MAX    16
+
+typedef enum { ScanModeSweep = 0, ScanModeFixed = 1 } ScanMode;
+typedef enum { ModOOK = 0, ModFSK = 1 } ModulationMode;
 
 typedef enum {
     AppViewMainMenu,
     AppViewScanning,
     AppViewSuccess,
     AppViewSettings,
+    AppViewRecent,
     AppViewCount,
 } AppView;
 
@@ -70,6 +78,7 @@ typedef struct {
     View*             view_scanning;
     View*             view_success;
     VariableItemList* view_settings;
+    Submenu*          view_recent;
 
     /* Scanner state */
     uint8_t  freq_index;
@@ -92,9 +101,20 @@ typedef struct {
     bool      edge_level;
 
     /* Settings */
-    int8_t     squelch_threshold;
-    FreqRange  freq_range;
-    AntennaMode antenna_mode; /* default = AntennaExternal */
+    int8_t          squelch_threshold;
+    FreqRange       freq_range;
+    AntennaMode     antenna_mode;   /* default = AntennaExternal */
+    uint32_t        dwell_ms;
+    ScanMode        scan_mode;
+    uint32_t        fixed_freq_hz;
+    ModulationMode  modulation;
+
+    /* Notifications */
+    NotificationApp* notifications;
+
+    /* Recent files list */
+    char    recent_files[RECENT_FILES_MAX][64];
+    uint8_t recent_files_count;
 
     /* Save result path */
     char save_path[128];

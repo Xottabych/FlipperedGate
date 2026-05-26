@@ -55,17 +55,25 @@ void freq_scanner_init(AppState* app) {
     uint8_t count;
     scanner_select_table(app, &table, &count);
 
+    uint32_t start_freq_hz;
+    if(app->scan_mode == ScanModeFixed) {
+        start_freq_hz = app->fixed_freq_hz;
+    } else {
+        start_freq_hz = table[0].freq_hz;
+    }
+
     if(app->antenna_mode == AntennaInternal) {
         furi_hal_subghz_reset();
-        furi_hal_subghz_set_frequency_and_path(table[0].freq_hz);
+        furi_hal_subghz_set_frequency_and_path(start_freq_hz);
         furi_hal_subghz_rx();
     } else if(app->cc1101_present) {
-        cc1101_set_frequency(app, table[0].freq_hz / 1000000.0f);
+        cc1101_apply_modulation(app);
+        cc1101_set_frequency(app, start_freq_hz / 1000000.0f);
         cc1101_enter_rx(app);
     }
 
-    app->current_freq_mhz = table[0].freq_hz / 1000000.0f;
-    app->capture_freq_hz  = table[0].freq_hz;
+    app->current_freq_mhz = start_freq_hz / 1000000.0f;
+    app->capture_freq_hz  = start_freq_hz;
     app->dwell_start_tick = furi_get_tick();
 }
 
@@ -107,14 +115,24 @@ void freq_scanner_tick(void* context) {
     if(app->capturing) return;
 
     if(rssi > app->rssi_threshold) {
-        app->capture_freq_hz = table[app->freq_index].freq_hz;
+        if(app->scan_mode == ScanModeFixed) {
+            app->capture_freq_hz = app->fixed_freq_hz;
+        } else {
+            app->capture_freq_hz = table[app->freq_index].freq_hz;
+        }
         app->capturing = true;
         view_dispatcher_send_custom_event(app->view_dispatcher, AppCustomEventSignalFound);
         return;
     }
 
+    /* In fixed mode, don't hop — just stay on the configured frequency */
+    if(app->scan_mode == ScanModeFixed) {
+        app->dwell_start_tick = furi_get_tick();
+        return;
+    }
+
     uint32_t now = furi_get_tick();
-    if((now - app->dwell_start_tick) >= FREQ_SCANNER_DWELL_MS) {
+    if((now - app->dwell_start_tick) >= furi_ms_to_ticks(app->dwell_ms)) {
         app->freq_index = (app->freq_index + 1) % count;
         uint32_t next_hz = table[app->freq_index].freq_hz;
         float    next_mhz = next_hz / 1000000.0f;

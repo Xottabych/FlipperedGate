@@ -87,12 +87,13 @@
 /* XTAL frequency in Hz */
 #define CC1101_XTAL_HZ   26000000UL
 
-bool   cc1101_ext_init(AppState* app);
-void   cc1101_ext_deinit(AppState* app);
-void   cc1101_set_frequency(AppState* app, float freq_mhz);
-int8_t cc1101_get_rssi(AppState* app);
-void   cc1101_strobe(AppState* app, uint8_t cmd);
-void   cc1101_write_reg(AppState* app, uint8_t addr, uint8_t val);
+bool    cc1101_ext_init(AppState* app);
+void    cc1101_ext_deinit(AppState* app);
+void    cc1101_set_frequency(AppState* app, float freq_mhz);
+int8_t  cc1101_get_rssi(AppState* app);
+void    cc1101_strobe(AppState* app, uint8_t cmd);
+void    cc1101_write_reg(AppState* app, uint8_t addr, uint8_t val);
 uint8_t cc1101_read_reg(AppState* app, uint8_t addr);
-void   cc1101_enter_rx(AppState* app);
-void   cc1101_idle(AppState* app);
+void    cc1101_enter_rx(AppState* app);
+void    cc1101_idle(AppState* app);
+void    cc1101_apply_modulation(AppState* app);

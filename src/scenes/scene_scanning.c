@@ -135,7 +135,8 @@ bool scene_scanning_on_event(void* context, SceneManagerEvent event) {
     }
 
     if(event.event == AppCustomEventSignalFound) {
-        /* Scanner locked — start raw capture */
+        /* Scanner locked — notify user and start raw capture */
+        notification_message(app->notifications, &sequence_success);
         signal_capture_start(app);
         with_view_model(
             app->view_scanning, ScanningModel* m, {

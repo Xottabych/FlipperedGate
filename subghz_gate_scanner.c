@@ -41,9 +41,13 @@ AppState* app_alloc(void) {
     furi_check(app->capture_buf);
 
     /* Default settings */
-    app->rssi_threshold   = -85;
+    app->rssi_threshold    = -85;
     app->squelch_threshold = 30;
     app->freq_range        = FreqRange_433;
+    app->dwell_ms          = 200;
+    app->scan_mode         = ScanModeSweep;
+    app->fixed_freq_hz     = 433920000;
+    app->modulation        = ModOOK;
 
     /* Assign GPIO pins */
     app->pin_mosi = &gpio_ext_pa7;
@@ -53,7 +57,8 @@ AppState* app_alloc(void) {
     app->pin_gd0  = &gpio_ext_pb2;
 
     /* Open SDK services */
-    app->gui = furi_record_open(RECORD_GUI);
+    app->gui           = furi_record_open(RECORD_GUI);
+    app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
     /* View dispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
@@ -85,6 +90,12 @@ AppState* app_alloc(void) {
         app->view_dispatcher, AppViewSettings,
         variable_item_list_get_view(app->view_settings));
 
+    /* Recent files (Submenu) */
+    app->view_recent = submenu_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, AppViewRecent,
+        submenu_get_view(app->view_recent));
+
     /* Attach dispatcher to GUI */
     view_dispatcher_attach_to_gui(
         app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -112,11 +123,13 @@ void app_free(AppState* app) {
         cc1101_ext_deinit(app);
     }
 
+    view_dispatcher_remove_view(app->view_dispatcher, AppViewRecent);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewSuccess);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewScanning);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewMainMenu);
 
+    submenu_free(app->view_recent);
     variable_item_list_free(app->view_settings);
     view_free(app->view_success);
     view_free(app->view_scanning);
@@ -126,6 +139,7 @@ void app_free(AppState* app) {
     view_dispatcher_free(app->view_dispatcher);
 
     furi_record_close(RECORD_GUI);
+    furi_record_close(RECORD_NOTIFICATION);
 
     free(app->capture_buf);
     free(app);
