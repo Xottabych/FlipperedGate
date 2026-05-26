@@ -6,7 +6,6 @@
 #include <gui/view.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
-#include <gui/modules/menu.h>
 #include <gui/modules/variable_item_list.h>
 #include <gui/canvas.h>
 #include <gui/elements.h>
@@ -67,7 +66,7 @@ typedef struct {
     SceneManager*    scene_manager;
 
     /* Views */
-    Menu*             view_main_menu;
+    View*             view_main_menu;
     View*             view_scanning;
     View*             view_success;
     VariableItemList* view_settings;

@@ -4,7 +4,8 @@
 #include "src/frequency_scanner.h"
 #include "src/signal_capture.h"
 
-/* Declared in scene_scanning.c and scene_success.c */
+/* Declared in their respective scene source files */
+extern void scene_main_menu_view_init(AppState* app);
 extern void scene_scanning_view_init(AppState* app);
 extern void scene_success_view_init(AppState* app);
 
@@ -63,11 +64,10 @@ AppState* app_alloc(void) {
     /* Scene manager */
     app->scene_manager = scene_manager_alloc(&scene_event_handlers, app);
 
-    /* Main menu (Menu widget) */
-    app->view_main_menu = menu_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, AppViewMainMenu,
-        menu_get_view(app->view_main_menu));
+    /* Main menu (custom View with canvas_draw_xbm) */
+    app->view_main_menu = view_alloc();
+    scene_main_menu_view_init(app);
+    view_dispatcher_add_view(app->view_dispatcher, AppViewMainMenu, app->view_main_menu);
 
     /* Scanning (custom View) */
     app->view_scanning = view_alloc();
@@ -120,7 +120,7 @@ void app_free(AppState* app) {
     variable_item_list_free(app->view_settings);
     view_free(app->view_success);
     view_free(app->view_scanning);
-    menu_free(app->view_main_menu);
+    view_free(app->view_main_menu);
 
     scene_manager_free(app->scene_manager);
     view_dispatcher_free(app->view_dispatcher);
