@@ -96,6 +96,12 @@ AppState* app_alloc(void) {
         app->view_dispatcher, AppViewRecent,
         submenu_get_view(app->view_recent));
 
+    /* Decode .sub file browser (Submenu) */
+    app->view_decode = submenu_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, AppViewDecode,
+        submenu_get_view(app->view_decode));
+
     /* Attach dispatcher to GUI */
     view_dispatcher_attach_to_gui(
         app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -125,12 +131,14 @@ void app_free(AppState* app) {
         furi_hal_power_disable_otg();
     }
 
+    view_dispatcher_remove_view(app->view_dispatcher, AppViewDecode);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewRecent);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewSuccess);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewScanning);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewMainMenu);
 
+    submenu_free(app->view_decode);
     submenu_free(app->view_recent);
     variable_item_list_free(app->view_settings);
     view_free(app->view_success);

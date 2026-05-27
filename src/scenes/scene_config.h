@@ -8,6 +8,7 @@ typedef enum {
     SceneSuccess   = 2,
     SceneSettings  = 3,
     SceneRecent    = 4,
+    SceneDecode    = 5,
     SceneCount,
 } SceneId;
 
@@ -32,12 +33,17 @@ void scene_recent_on_enter(void* context);
 bool scene_recent_on_event(void* context, SceneManagerEvent event);
 void scene_recent_on_exit(void* context);
 
+void scene_decode_on_enter(void* context);
+bool scene_decode_on_event(void* context, SceneManagerEvent event);
+void scene_decode_on_exit(void* context);
+
 static void (*const scene_on_enter_handlers[])(void*) = {
     [SceneMainMenu] = scene_main_menu_on_enter,
     [SceneScanning] = scene_scanning_on_enter,
     [SceneSuccess]  = scene_success_on_enter,
     [SceneSettings] = scene_settings_on_enter,
     [SceneRecent]   = scene_recent_on_enter,
+    [SceneDecode]   = scene_decode_on_enter,
 };
 
 static bool (*const scene_on_event_handlers[])(void*, SceneManagerEvent) = {
@@ -46,6 +52,7 @@ static bool (*const scene_on_event_handlers[])(void*, SceneManagerEvent) = {
     [SceneSuccess]  = scene_success_on_event,
     [SceneSettings] = scene_settings_on_event,
     [SceneRecent]   = scene_recent_on_event,
+    [SceneDecode]   = scene_decode_on_event,
 };
 
 static void (*const scene_on_exit_handlers[])(void*) = {
@@ -54,6 +61,7 @@ static void (*const scene_on_exit_handlers[])(void*) = {
     [SceneSuccess]  = scene_success_on_exit,
     [SceneSettings] = scene_settings_on_exit,
     [SceneRecent]   = scene_recent_on_exit,
+    [SceneDecode]   = scene_decode_on_exit,
 };
 
 static const SceneManagerHandlers scene_event_handlers = {

@@ -3,12 +3,13 @@
 #include "../cc1101_ext.h"
 #include "../frequency_scanner.h"
 
-#define MENU_ITEM_COUNT 3
+#define MENU_ITEM_COUNT 4
 
 typedef enum {
     MenuItemStartScan = 0,
     MenuItemRecent    = 1,
-    MenuItemSettings  = 2,
+    MenuItemDecode    = 2,
+    MenuItemSettings  = 3,
 } MenuItem;
 
 typedef struct {
@@ -45,27 +46,28 @@ static void menu_draw_cb(Canvas* canvas, void* model) {
 
     canvas_set_color(canvas, ColorBlack);
 
-    /* ── 3 menu rows (each 17px tall, starting at y=13) ────────────────── */
+    /* ── 4 menu rows (each 12px tall, starting at y=13) ────────────────── */
     static const char* const labels[MENU_ITEM_COUNT] = {
         "Start Scan",
         "Recent Files",
+        "Decode .sub",
         "Settings",
     };
 
     for(uint8_t i = 0; i < MENU_ITEM_COUNT; i++) {
-        uint8_t item_y = 13 + (uint8_t)(i * 17);
+        uint8_t item_y = 13 + (uint8_t)(i * 13);
         bool    sel    = (m->selected == i);
 
         if(sel) {
             canvas_set_color(canvas, ColorBlack);
-            canvas_draw_rbox(canvas, 0, item_y, 128, 17, 2);
+            canvas_draw_rbox(canvas, 0, item_y, 128, 13, 2);
             canvas_set_color(canvas, ColorWhite);
         } else {
             canvas_set_color(canvas, ColorBlack);
         }
 
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, item_y + 12, AlignCenter, AlignBottom, labels[i]);
+        canvas_draw_str_aligned(canvas, 64, item_y + 10, AlignCenter, AlignBottom, labels[i]);
 
         canvas_set_color(canvas, ColorBlack);
     }
@@ -150,6 +152,11 @@ bool scene_main_menu_on_event(void* context, SceneManagerEvent event) {
 
     if(event.event == MenuItemRecent) {
         scene_manager_next_scene(app->scene_manager, SceneRecent);
+        return true;
+    }
+
+    if(event.event == MenuItemDecode) {
+        scene_manager_next_scene(app->scene_manager, SceneDecode);
         return true;
     }
 

@@ -36,6 +36,7 @@ typedef enum {
     AppViewSuccess,
     AppViewSettings,
     AppViewRecent,
+    AppViewDecode,
     AppViewCount,
 } AppView;
 
@@ -79,6 +80,7 @@ typedef struct {
     View*             view_success;
     VariableItemList* view_settings;
     Submenu*          view_recent;
+    Submenu*          view_decode;
 
     /* Scanner state */
     uint8_t  freq_index;
