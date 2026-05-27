@@ -2,6 +2,7 @@
 #include "scene_config.h"
 #include "../signal_capture.h"
 #include "../file_manager.h"
+#include "../keeloq.h"
 
 /* ── Protocol detection ──────────────────────────────────────────────────── */
 
@@ -34,7 +35,7 @@ static const char* proto_name(ProtoType t) {
     switch(t) {
     case ProtoPrinceton: return "Princeton 24-bit";
     case ProtoCame:      return "Came / Nice";
-    case ProtoRolling:   return "Rolling Code!";
+    case ProtoRolling:   return "KeeLoq Rolling";
     default:             return "Unknown (RAW)";
     }
 }
@@ -94,6 +95,12 @@ typedef struct {
     bool     is_error;
     bool     saved;
     bool     is_rolling;
+    /* KeeLoq decoded info (valid when is_rolling) */
+    KeeLoqResult kl;
+    char     kl_sn_str[24];   /* "SN:0x1A2B3C BTN:0" */
+    char     kl_id_str[32];   /* "BFT | CNT:1234" or "No key in DB" */
+    char     kl_hop_str[24];  /* "Hop:0xABCD1234" */
+    /* Waveform for non-rolling signals */
     int32_t  waveform[64];
     uint16_t waveform_len;
 } SuccessModel;
@@ -122,29 +129,36 @@ static void success_draw_cb(Canvas* canvas, void* model_ptr) {
     canvas_draw_box(canvas, 0, 0, 128, 13);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 11, AlignCenter, AlignBottom, "Signal Captured!");
+    canvas_draw_str_aligned(
+        canvas, 64, 11, AlignCenter, AlignBottom,
+        m->is_rolling ? "KeeLoq Frame!" : "Signal Captured!");
     canvas_set_color(canvas, ColorBlack);
 
-    /* Frequency + pulse count */
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, 23, m->freq_str);
 
-    /* Protocol name row — inverted background when rolling code */
     if(m->is_rolling) {
-        canvas_draw_box(canvas, 0, 25, 128, 11);
-        canvas_set_color(canvas, ColorWhite);
+        /* Rolling code view: show decoded frame info */
+        canvas_draw_str(canvas, 2, 33, m->kl_sn_str);
+
+        /* Manufacturer / counter row — inverted if key matched */
+        if(m->kl.decoded) {
+            canvas_draw_box(canvas, 0, 35, 128, 10);
+            canvas_set_color(canvas, ColorWhite);
+        }
+        canvas_draw_str(canvas, 2, 44, m->kl_id_str);
+        canvas_set_color(canvas, ColorBlack);
+
+        canvas_draw_str(canvas, 2, 54, m->kl_hop_str);
+    } else {
+        /* Fixed code view: protocol + description + waveform */
+        canvas_draw_str(canvas, 2, 34, m->proto_str);
+        canvas_draw_str(canvas, 2, 44, m->desc_str);
+        draw_waveform(canvas, m->waveform, m->waveform_len, 1, 46, 126, 8);
     }
-    canvas_draw_str(canvas, 2, 34, m->proto_str);
-    canvas_set_color(canvas, ColorBlack);
 
-    /* Protocol description */
-    canvas_draw_str(canvas, 2, 44, m->desc_str);
-
-    /* RAW waveform preview (marks above baseline) */
-    draw_waveform(canvas, m->waveform, m->waveform_len, 1, 46, 126, 8);
     canvas_draw_line(canvas, 0, 55, 127, 55);
 
-    /* Action hint or saved filename */
     if(m->saved) {
         canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, m->path_str);
     } else {
@@ -179,6 +193,13 @@ void scene_success_on_enter(void* context) {
 
     ProtoType proto = is_error ? ProtoRAW : detect_proto(app->capture_buf, app->capture_len);
 
+    /* Run KeeLoq decoding on main thread before locking the model */
+    KeeLoqResult kl_result;
+    kl_result.decoded = false;
+    if(!is_error && !is_dup && proto == ProtoRolling) {
+        keeloq_try_decode(app->capture_buf, app->capture_len, &kl_result);
+    }
+
     with_view_model(
         app->view_success,
         SuccessModel* m,
@@ -186,6 +207,7 @@ void scene_success_on_enter(void* context) {
             m->saved      = false;
             m->is_error   = is_error || is_dup;
             m->is_rolling = (proto == ProtoRolling);
+            m->kl         = kl_result;
 
             if(m->is_error) {
                 if(is_dup) {
@@ -204,13 +226,39 @@ void scene_success_on_enter(void* context) {
                 snprintf(m->desc_str,  sizeof(m->desc_str),  "%s", proto_desc(proto));
                 m->path_str[0] = '\0';
 
-                /* Downsample to 64 pulses for display */
-                uint16_t step = (app->capture_len > 64) ? (app->capture_len / 64) : 1;
-                uint16_t wlen = 0;
-                for(uint16_t i = 0; i < app->capture_len && wlen < 64; i += step) {
-                    m->waveform[wlen++] = app->capture_buf[i];
+                if(proto == ProtoRolling) {
+                    if(kl_result.hop || kl_result.fix) {
+                        /* Frame was extracted successfully */
+                        snprintf(m->kl_sn_str, sizeof(m->kl_sn_str),
+                                 "SN:%07lX BTN:%X",
+                                 (unsigned long)kl_result.serial,
+                                 (unsigned)kl_result.btn);
+                        if(kl_result.decoded) {
+                            snprintf(m->kl_id_str, sizeof(m->kl_id_str),
+                                     "%s | CNT:%u",
+                                     kl_result.mfr_name, (unsigned)kl_result.cnt);
+                        } else {
+                            snprintf(m->kl_id_str, sizeof(m->kl_id_str),
+                                     "No key in DB");
+                        }
+                        snprintf(m->kl_hop_str, sizeof(m->kl_hop_str),
+                                 "Hop:%08lX", (unsigned long)kl_result.hop);
+                    } else {
+                        /* Frame extraction failed — can't decode timing */
+                        snprintf(m->kl_sn_str, sizeof(m->kl_sn_str), "Cannot parse frame");
+                        snprintf(m->kl_id_str, sizeof(m->kl_id_str), "Rolling (RAW saved)");
+                        snprintf(m->kl_hop_str, sizeof(m->kl_hop_str), "");
+                    }
+                    m->waveform_len = 0;
+                } else {
+                    /* Downsample to 64 pulses for waveform display */
+                    uint16_t step = (app->capture_len > 64) ? (app->capture_len / 64) : 1;
+                    uint16_t wlen = 0;
+                    for(uint16_t i = 0; i < app->capture_len && wlen < 64; i += step) {
+                        m->waveform[wlen++] = app->capture_buf[i];
+                    }
+                    m->waveform_len = wlen;
                 }
-                m->waveform_len = wlen;
             }
         },
         true);
