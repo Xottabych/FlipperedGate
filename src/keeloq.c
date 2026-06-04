@@ -14,9 +14,9 @@
 static uint32_t kl_decrypt(uint32_t data, uint64_t key) {
     uint32_t x = data, r;
     for(r = 0; r < 528; r++)
-        x = (x << 1) ^ KL_BIT(x, 31) ^ KL_BIT(x, 15) ^
+        x = (x << 1) ^ KL_BIT(x, 28) ^ KL_BIT(x, 14) ^
             (uint32_t)KL_BIT(key, (15 - r) & 63) ^
-            KL_BIT(KEELOQ_NLF, KL_G5(x, 0, 8, 19, 25, 30));
+            KL_BIT(KEELOQ_NLF, KL_G5(x, 1, 9, 20, 26, 31));
     return x;
 }
 

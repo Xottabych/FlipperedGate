@@ -104,8 +104,11 @@ void freq_scanner_tick(void* context) {
     if(app->antenna_mode == AntennaInternal) {
         rssi = (int8_t)furi_hal_subghz_get_rssi();
     } else {
-        if(!app->cc1101_present) return;
-        rssi = cc1101_get_rssi(app);
+        if(!app->cc1101_present) {
+            rssi = app->current_rssi; /* no radio available — reuse last value */
+        } else {
+            rssi = cc1101_get_rssi(app);
+        }
     }
     app->current_rssi = rssi;
 
