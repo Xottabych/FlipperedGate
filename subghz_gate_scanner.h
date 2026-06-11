@@ -100,6 +100,7 @@ typedef struct {
     bool          gdo0_int_registered; /* true while the GDO0 edge interrupt is installed */
     bool          otg_enabled;          /* true while furi_hal_power_enable_otg has been called */
     bool          subghz_started;       /* true while furi_hal_subghz has been initialised */
+    uint32_t      cpu_mhz;             /* cached furi_hal_cortex_instructions_per_microsecond() */
     uint32_t  last_capture_hash;
     uint32_t  last_capture_ts;
     uint32_t  last_edge_tick;

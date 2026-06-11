@@ -40,6 +40,13 @@ AppState* app_alloc(void) {
     app->capture_buf = malloc(CAPTURE_BUFFER_SIZE * sizeof(int32_t));
     furi_check(app->capture_buf);
 
+    /* Cache CPU clock rate once — the ISR reads this directly to avoid
+     * calling furi_hal_cortex_instructions_per_microsecond() from interrupt
+     * context (function pointer indirection through FAP API table is not
+     * safe from ISR; if the symbol is absent the pointer is NULL → INVSTATE). */
+    app->cpu_mhz = furi_hal_cortex_instructions_per_microsecond();
+    if(app->cpu_mhz == 0) app->cpu_mhz = 64; /* Flipper Zero = 64 MHz, safe fallback */
+
     /* Default settings */
     app->rssi_threshold    = -85;
     app->squelch_threshold = 30;

@@ -10,10 +10,13 @@ void signal_capture_gdo0_cb(void* context) {
     if(app->capture_done_flag) return;
 
     uint32_t now_cycles = DWT->CYCCNT;
-    uint32_t cpu_mhz    = furi_hal_cortex_instructions_per_microsecond();
+    /* Use pre-cached cpu_mhz (set in app_alloc) — do NOT call
+     * furi_hal_cortex_instructions_per_microsecond() here: FAP API table
+     * indirection is unsafe in ISR context and can cause INVSTATE UsageFault. */
+    uint32_t cpu_mhz    = app->cpu_mhz;
 
-    bool     level        = furi_hal_gpio_read(app->pin_gd0);
-    uint32_t elapsed_us   = (now_cycles - app->last_edge_tick) / cpu_mhz;
+    bool     level      = furi_hal_gpio_read(app->pin_gd0);
+    uint32_t elapsed_us = (cpu_mhz > 0) ? ((now_cycles - app->last_edge_tick) / cpu_mhz) : 0;
     app->last_edge_tick   = now_cycles;
 
     if(elapsed_us < CAPTURE_MIN_PULSE_US) return;
