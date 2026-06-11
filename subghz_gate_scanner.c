@@ -120,9 +120,11 @@ AppState* app_alloc(void) {
 }
 
 void app_free(AppState* app) {
+    FURI_LOG_I("GateApp", "free: timers");
     furi_timer_stop(app->scan_timer);
     furi_timer_free(app->scan_timer);
 
+    FURI_LOG_I("GateApp", "free: capture/scanner stop");
     signal_capture_stop(app);
     freq_scanner_stop(app);
 
@@ -133,6 +135,7 @@ void app_free(AppState* app) {
         furi_hal_power_disable_otg();
     }
 
+    FURI_LOG_I("GateApp", "free: views");
     view_dispatcher_remove_view(app->view_dispatcher, AppViewDecode);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewRecent);
     view_dispatcher_remove_view(app->view_dispatcher, AppViewSettings);
@@ -162,11 +165,18 @@ void app_free(AppState* app) {
 int32_t subghz_gate_scanner_app(void* p) {
     UNUSED(p);
 
+    FURI_LOG_I("GateApp", "entry: alloc");
     AppState* app = app_alloc();
 
+    FURI_LOG_I("GateApp", "entry: first scene");
     scene_manager_next_scene(app->scene_manager, SceneMainMenu);
+
+    FURI_LOG_I("GateApp", "entry: run loop");
     view_dispatcher_run(app->view_dispatcher);
 
+    FURI_LOG_I("GateApp", "entry: free");
     app_free(app);
+
+    FURI_LOG_I("GateApp", "entry: done");
     return 0;
 }

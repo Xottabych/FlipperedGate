@@ -76,6 +76,7 @@ void signal_capture_start(AppState* app) {
             app->pin_gd0, GpioModeInterruptRiseFall, GpioPullNo, GpioSpeedVeryHigh);
         furi_hal_gpio_add_int_callback(app->pin_gd0, signal_capture_gdo0_cb, app);
         furi_hal_gpio_enable_int_callback(app->pin_gd0);
+        app->gdo0_int_registered = true;
     }
 }
 
@@ -89,9 +90,16 @@ void signal_capture_stop(AppState* app) {
             app->capture_rx_started = false;
         }
     } else {
-        furi_hal_gpio_disable_int_callback(app->pin_gd0);
-        furi_hal_gpio_remove_int_callback(app->pin_gd0);
-        furi_hal_gpio_init(app->pin_gd0, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
+        /* Guard: remove_int_callback on a pin that never had a callback
+         * registered faults. The GDO0 interrupt is only installed when an
+         * external capture actually starts, so a launch→exit without scanning
+         * must NOT touch it. */
+        if(app->gdo0_int_registered) {
+            furi_hal_gpio_disable_int_callback(app->pin_gd0);
+            furi_hal_gpio_remove_int_callback(app->pin_gd0);
+            furi_hal_gpio_init(app->pin_gd0, GpioModeInput, GpioPullNo, GpioSpeedVeryHigh);
+            app->gdo0_int_registered = false;
+        }
     }
 }
 

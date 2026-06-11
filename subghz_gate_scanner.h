@@ -96,7 +96,8 @@ typedef struct {
     uint32_t  capture_freq_hz;
     volatile bool capturing;
     volatile bool capture_done_flag;
-    bool          capture_rx_started; /* true while furi_hal_subghz_start_async_rx is active */
+    bool          capture_rx_started;  /* true while furi_hal_subghz_start_async_rx is active */
+    bool          gdo0_int_registered; /* true while the GDO0 edge interrupt is installed */
     uint32_t  last_capture_hash;
     uint32_t  last_capture_ts;
     uint32_t  last_edge_tick;
