@@ -109,11 +109,12 @@ AppState* app_alloc(void) {
     /* Periodic timer for frequency hopping */
     app->scan_timer = furi_timer_alloc(scan_timer_cb, FuriTimerTypePeriodic, app);
 
-    /* Try to detect CC1101 */
-    app->cc1101_present = cc1101_ext_init(app);
-    if(!app->cc1101_present) {
-        FURI_LOG_W("App", "External CC1101 not detected");
-    }
+    /* Do NOT probe external hardware here. Enabling the OTG boost converter and
+     * bit-banging SPI at app startup is unnecessary (the menu doesn't need the
+     * radio) and risky — any hardware hiccup faults before the UI is even up.
+     * The external CC1101 is initialised lazily on the first external scan
+     * (see scene_main_menu_on_event). Until then HW status is "unknown". */
+    app->cc1101_present = false;
 
     return app;
 }
@@ -127,7 +128,8 @@ void app_free(AppState* app) {
 
     if(app->cc1101_present) {
         cc1101_ext_deinit(app);
-    } else if(app->antenna_mode == AntennaExternal) {
+    } else if(furi_hal_power_is_otg_enabled()) {
+        /* OTG may have been left on by a failed external init — release it */
         furi_hal_power_disable_otg();
     }
 

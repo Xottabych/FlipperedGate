@@ -95,6 +95,19 @@ void freq_scanner_stop(AppState* app) {
 void freq_scanner_tick(void* context) {
     AppState* app = context;
 
+    /* This runs in the FuriTimer service thread. While a capture is in progress
+     * (or just finished), the capture path owns the radio: the async-RX DMA/ISR
+     * on the internal CC1101 — or the GDO0 edge ISR on the external one — is
+     * actively driving it. Reading RSSI here would issue a concurrent SPI/HAL
+     * access to the same peripheral from a different thread, which races the
+     * capture engine and can fault. Just poke the UI thread so it can poll
+     * capture_done_flag and advance, then bail out without touching hardware. */
+    if(app->capturing ||
+       __atomic_load_n(&app->capture_done_flag, __ATOMIC_ACQUIRE)) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, AppCustomEventScanTick);
+        return;
+    }
+
     const FreqEntry* table;
     uint8_t count;
     scanner_select_table(app, &table, &count);
@@ -113,9 +126,6 @@ void freq_scanner_tick(void* context) {
     app->current_rssi = rssi;
 
     view_dispatcher_send_custom_event(app->view_dispatcher, AppCustomEventScanTick);
-
-    if(__atomic_load_n(&app->capture_done_flag, __ATOMIC_ACQUIRE)) return;
-    if(app->capturing) return;
 
     if(rssi > app->rssi_threshold) {
         if(app->scan_mode == ScanModeFixed) {

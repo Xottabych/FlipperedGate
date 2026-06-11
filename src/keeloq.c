@@ -138,8 +138,15 @@ static bool kl_parse_frame(const uint8_t* bits, uint8_t nbits,
 /* ── Public API ─────────────────────────────────────────────────────────── */
 
 bool keeloq_try_decode(const int32_t* buf, uint16_t len, KeeLoqResult* out) {
+    /* Zero every field up front: callers (scene_success) inspect hop/fix/serial
+     * even when we bail out early, so they must never read stack garbage. */
     out->decoded  = false;
     out->mfr_name = NULL;
+    out->hop      = 0;
+    out->fix      = 0;
+    out->serial   = 0;
+    out->btn      = 0;
+    out->cnt      = 0;
 
     uint8_t bits[KL_MAX_BITS];
     uint8_t nbits = 0;

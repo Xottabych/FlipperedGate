@@ -138,9 +138,13 @@ void cc1101_strobe(AppState* app, uint8_t cmd) {
 /* ── High-level CC1101 API ───────────────────────────────────────────────── */
 
 bool cc1101_ext_init(AppState* app) {
-    /* Enable 5V on GPIO Pin 1 so the external module works on battery */
-    furi_hal_power_enable_otg();
-    furi_delay_ms(50); /* allow boost converter + CC1101 to stabilise (battery-safe) */
+    /* Enable 5V on GPIO Pin 1 so the external module works on battery.
+     * Guard against double-enable (calling enable twice is undefined on the
+     * charger IC and can leave the boost converter in a bad state). */
+    if(!furi_hal_power_is_otg_enabled()) {
+        furi_hal_power_enable_otg();
+        furi_delay_ms(50); /* allow boost converter + CC1101 to stabilise (battery-safe) */
+    }
 
     /* Configure GPIO directions */
     furi_hal_gpio_init(app->pin_sck,  GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
@@ -170,7 +174,7 @@ bool cc1101_ext_init(AppState* app) {
 
     if(partnum != CC1101_PARTNUM_EXPECTED || version != CC1101_VERSION_EXPECTED) {
         FURI_LOG_W("CC1101", "Unexpected chip id — no external CC1101?");
-        furi_hal_power_disable_otg();
+        if(furi_hal_power_is_otg_enabled()) furi_hal_power_disable_otg();
         return false;
     }
 
@@ -203,7 +207,7 @@ void cc1101_ext_deinit(AppState* app) {
     furi_hal_gpio_init(app->pin_gd0,  GpioModeAnalog, GpioPullNo, GpioSpeedLow);
 
     /* Cut 5V supply to external module */
-    furi_hal_power_disable_otg();
+    if(furi_hal_power_is_otg_enabled()) furi_hal_power_disable_otg();
 }
 
 void cc1101_set_frequency(AppState* app, float freq_mhz) {

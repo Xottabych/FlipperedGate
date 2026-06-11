@@ -195,7 +195,7 @@ void scene_success_on_enter(void* context) {
 
     /* Run KeeLoq decoding on main thread before locking the model */
     KeeLoqResult kl_result;
-    kl_result.decoded = false;
+    memset(&kl_result, 0, sizeof(kl_result));
     if(!is_error && !is_dup && proto == ProtoRolling) {
         keeloq_try_decode(app->capture_buf, app->capture_len, &kl_result);
     }
