@@ -66,6 +66,7 @@ void freq_scanner_init(AppState* app) {
         furi_hal_subghz_reset();
         furi_hal_subghz_set_frequency_and_path(start_freq_hz);
         furi_hal_subghz_rx();
+        app->subghz_started = true;
     } else if(app->cc1101_present) {
         cc1101_apply_modulation(app);
         cc1101_set_frequency(app, start_freq_hz / 1000000.0f);
@@ -83,8 +84,15 @@ void freq_scanner_start(AppState* app) {
 
 void freq_scanner_stop(AppState* app) {
     if(app->antenna_mode == AntennaInternal) {
-        furi_hal_subghz_idle();
-        furi_hal_subghz_sleep();
+        /* Only call idle/sleep if we actually started the subghz subsystem.
+         * furi_hal_subghz_idle asserts state==Rx|Tx; calling it without a
+         * prior furi_hal_subghz_rx (e.g. on exit from settings without scanning)
+         * would panic. */
+        if(app->subghz_started) {
+            furi_hal_subghz_idle();
+            furi_hal_subghz_sleep();
+            app->subghz_started = false;
+        }
     } else if(app->cc1101_present) {
         cc1101_idle(app);
     }

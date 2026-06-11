@@ -130,9 +130,10 @@ void app_free(AppState* app) {
 
     if(app->cc1101_present) {
         cc1101_ext_deinit(app);
-    } else if(furi_hal_power_is_otg_enabled()) {
-        /* OTG may have been left on by a failed external init — release it */
+    } else if(app->otg_enabled) {
+        /* OTG was enabled by a failed cc1101_ext_init — release it */
         furi_hal_power_disable_otg();
+        app->otg_enabled = false;
     }
 
     FURI_LOG_I("GateApp", "free: views");
