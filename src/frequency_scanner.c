@@ -67,6 +67,7 @@ void freq_scanner_init(AppState* app) {
         furi_hal_subghz_set_frequency_and_path(start_freq_hz);
         furi_hal_subghz_rx();
         app->subghz_started = true;
+        app->subghz_in_rx   = true;
     } else if(app->cc1101_present) {
         cc1101_apply_modulation(app);
         cc1101_set_frequency(app, start_freq_hz / 1000000.0f);
@@ -89,7 +90,14 @@ void freq_scanner_stop(AppState* app) {
          * prior furi_hal_subghz_rx (e.g. on exit from settings without scanning)
          * would panic. */
         if(app->subghz_started) {
-            furi_hal_subghz_idle();
+            /* Only call idle() when the radio is actually in Rx state.
+             * furi_hal_subghz_stop_async_rx() already transitions to Idle;
+             * calling idle() again would fail the firmware's furi_check
+             * (state == Rx||Tx) and trigger furi_crash → BusFault. */
+            if(app->subghz_in_rx) {
+                furi_hal_subghz_idle();
+                app->subghz_in_rx = false;
+            }
             furi_hal_subghz_sleep();
             app->subghz_started = false;
         }
@@ -160,8 +168,10 @@ void freq_scanner_tick(void* context) {
 
         if(app->antenna_mode == AntennaInternal) {
             furi_hal_subghz_idle();
+            app->subghz_in_rx = false;
             furi_hal_subghz_set_frequency_and_path(next_hz);
             furi_hal_subghz_rx();
+            app->subghz_in_rx = true;
         } else {
             cc1101_set_frequency(app, next_mhz);
             cc1101_enter_rx(app);

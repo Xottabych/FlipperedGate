@@ -91,6 +91,9 @@ void signal_capture_stop(AppState* app) {
         if(app->capture_rx_started) {
             furi_hal_subghz_stop_async_rx();
             app->capture_rx_started = false;
+            /* stop_async_rx transitions state to Idle — idle() must NOT be called
+             * afterwards or the firmware furi_check (state==Rx||Tx) will fire. */
+            app->subghz_in_rx = false;
         }
     } else {
         /* Guard: remove_int_callback on a pin that never had a callback

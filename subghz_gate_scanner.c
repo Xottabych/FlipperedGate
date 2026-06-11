@@ -32,23 +32,21 @@ static void scan_timer_cb(void* context) {
 /* ── Application lifecycle ──────────────────────────────────────────────── */
 
 AppState* app_alloc(void) {
+    FURI_LOG_I("GateApp", "alloc: AppState");
     AppState* app = malloc(sizeof(AppState));
     furi_check(app);
     memset(app, 0, sizeof(AppState));
 
     /* Allocate capture buffer on heap (too large for stack) */
+    FURI_LOG_I("GateApp", "alloc: capture_buf");
     app->capture_buf = malloc(CAPTURE_BUFFER_SIZE * sizeof(int32_t));
     furi_check(app->capture_buf);
 
-    /* Cache CPU clock rate for use in the GPIO ISR.
-     * Flipper Zero runs at 64 MHz. We hardcode this value instead of calling
-     * furi_hal_cortex_instructions_per_microsecond() because:
-     *  a) any FAP API call from ISR context is unsafe (trampoline may use
-     *     FreeRTOS primitives forbidden in ISR);
-     *  b) if the symbol is absent from the firmware API table the FAP fails
-     *     to load entirely with "Missing Imports".
-     * The value is written once here (main-thread context) and read in the ISR. */
-    app->cpu_mhz = 64; /* Flipper Zero STM32WB55 @ 64 MHz */
+    /* Cache CPU clock = 64 MHz (STM32WB55).  Written once here (main-thread)
+     * and read-only in the GDO0 ISR — never call furi_hal_cortex_* from ISR
+     * (FAP trampoline is unsafe in ISR context, and the symbol may be absent
+     * from the firmware API table causing Missing Imports). */
+    app->cpu_mhz = 64;
 
     /* Default settings */
     app->rssi_threshold    = -85;
@@ -67,56 +65,67 @@ AppState* app_alloc(void) {
     app->pin_gd0  = &gpio_ext_pb2;
 
     /* Open SDK services */
+    FURI_LOG_I("GateApp", "alloc: records");
     app->gui           = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
     /* View dispatcher */
+    FURI_LOG_I("GateApp", "alloc: dispatcher");
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, app_navigation_cb);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, app_custom_event_cb);
 
     /* Scene manager */
+    FURI_LOG_I("GateApp", "alloc: scene_manager");
     app->scene_manager = scene_manager_alloc(&scene_event_handlers, app);
 
     /* Main menu (custom View with canvas_draw_xbm) */
+    FURI_LOG_I("GateApp", "alloc: view_main_menu");
     app->view_main_menu = view_alloc();
     scene_main_menu_view_init(app);
     view_dispatcher_add_view(app->view_dispatcher, AppViewMainMenu, app->view_main_menu);
 
     /* Scanning (custom View) */
+    FURI_LOG_I("GateApp", "alloc: view_scanning");
     app->view_scanning = view_alloc();
     scene_scanning_view_init(app);
     view_dispatcher_add_view(app->view_dispatcher, AppViewScanning, app->view_scanning);
 
     /* Success (custom View) */
+    FURI_LOG_I("GateApp", "alloc: view_success");
     app->view_success = view_alloc();
     scene_success_view_init(app);
     view_dispatcher_add_view(app->view_dispatcher, AppViewSuccess, app->view_success);
 
     /* Settings (VariableItemList) */
+    FURI_LOG_I("GateApp", "alloc: view_settings");
     app->view_settings = variable_item_list_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, AppViewSettings,
         variable_item_list_get_view(app->view_settings));
 
     /* Recent files (Submenu) */
+    FURI_LOG_I("GateApp", "alloc: view_recent");
     app->view_recent = submenu_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, AppViewRecent,
         submenu_get_view(app->view_recent));
 
     /* Decode .sub file browser (Submenu) */
+    FURI_LOG_I("GateApp", "alloc: view_decode");
     app->view_decode = submenu_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, AppViewDecode,
         submenu_get_view(app->view_decode));
 
     /* Attach dispatcher to GUI */
+    FURI_LOG_I("GateApp", "alloc: attach gui");
     view_dispatcher_attach_to_gui(
         app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     /* Periodic timer for frequency hopping */
+    FURI_LOG_I("GateApp", "alloc: timer");
     app->scan_timer = furi_timer_alloc(scan_timer_cb, FuriTimerTypePeriodic, app);
 
     /* Do NOT probe external hardware here. Enabling the OTG boost converter and
@@ -126,6 +135,7 @@ AppState* app_alloc(void) {
      * (see scene_main_menu_on_event). Until then HW status is "unknown". */
     app->cc1101_present = false;
 
+    FURI_LOG_I("GateApp", "alloc: done");
     return app;
 }
 

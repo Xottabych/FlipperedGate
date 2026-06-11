@@ -134,6 +134,7 @@ bool scene_main_menu_on_event(void* context, SceneManagerEvent event) {
 
     if(event.event == MenuItemStartScan) {
         if(app->antenna_mode == AntennaExternal) {
+            FURI_LOG_I("GateApp", "scan: cc1101_ext_init");
             app->cc1101_present = cc1101_ext_init(app);
             if(!app->cc1101_present) {
                 snprintf(
@@ -143,9 +144,14 @@ bool scene_main_menu_on_event(void* context, SceneManagerEvent event) {
                 scene_manager_next_scene(app->scene_manager, SceneSuccess);
                 return true;
             }
+            FURI_LOG_I("GateApp", "scan: cc1101 ok");
+        } else {
+            FURI_LOG_I("GateApp", "scan: internal antenna");
         }
+        FURI_LOG_I("GateApp", "scan: freq_scanner_start");
         freq_scanner_start(app);
         furi_timer_start(app->scan_timer, furi_ms_to_ticks(app->dwell_ms));
+        FURI_LOG_I("GateApp", "scan: entering scene");
         scene_manager_next_scene(app->scene_manager, SceneScanning);
         return true;
     }
