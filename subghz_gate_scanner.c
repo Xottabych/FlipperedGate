@@ -40,12 +40,15 @@ AppState* app_alloc(void) {
     app->capture_buf = malloc(CAPTURE_BUFFER_SIZE * sizeof(int32_t));
     furi_check(app->capture_buf);
 
-    /* Cache CPU clock rate once — the ISR reads this directly to avoid
-     * calling furi_hal_cortex_instructions_per_microsecond() from interrupt
-     * context (function pointer indirection through FAP API table is not
-     * safe from ISR; if the symbol is absent the pointer is NULL → INVSTATE). */
-    app->cpu_mhz = furi_hal_cortex_instructions_per_microsecond();
-    if(app->cpu_mhz == 0) app->cpu_mhz = 64; /* Flipper Zero = 64 MHz, safe fallback */
+    /* Cache CPU clock rate for use in the GPIO ISR.
+     * Flipper Zero runs at 64 MHz. We hardcode this value instead of calling
+     * furi_hal_cortex_instructions_per_microsecond() because:
+     *  a) any FAP API call from ISR context is unsafe (trampoline may use
+     *     FreeRTOS primitives forbidden in ISR);
+     *  b) if the symbol is absent from the firmware API table the FAP fails
+     *     to load entirely with "Missing Imports".
+     * The value is written once here (main-thread context) and read in the ISR. */
+    app->cpu_mhz = 64; /* Flipper Zero STM32WB55 @ 64 MHz */
 
     /* Default settings */
     app->rssi_threshold    = -85;
@@ -127,13 +130,21 @@ AppState* app_alloc(void) {
 }
 
 void app_free(AppState* app) {
-    FURI_LOG_I("GateApp", "free: timers");
+    /* Stop the scan timer FIRST so that freq_scanner_tick() can no longer
+     * fire and issue concurrent SPI / HAL calls while we tear down the radio.
+     * furi_timer_stop() is synchronous — it blocks until the timer daemon
+     * processes the stop command (and any in-flight callback finishes). */
+    FURI_LOG_I("GateApp", "free: timer stop");
     furi_timer_stop(app->scan_timer);
-    furi_timer_free(app->scan_timer);
 
+    /* Now it is safe to stop the capture engine and radio — no concurrent
+     * access from the timer thread is possible. */
     FURI_LOG_I("GateApp", "free: capture/scanner stop");
     signal_capture_stop(app);
     freq_scanner_stop(app);
+
+    /* Free the timer object only after all callers are done with it. */
+    furi_timer_free(app->scan_timer);
 
     if(app->cc1101_present) {
         cc1101_ext_deinit(app);
