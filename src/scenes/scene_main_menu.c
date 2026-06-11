@@ -55,19 +55,19 @@ static void menu_draw_cb(Canvas* canvas, void* model) {
     };
 
     for(uint8_t i = 0; i < MENU_ITEM_COUNT; i++) {
-        uint8_t item_y = 13 + (uint8_t)(i * 13);
+        uint8_t item_y = 13 + (uint8_t)(i * 12);
         bool    sel    = (m->selected == i);
 
         if(sel) {
             canvas_set_color(canvas, ColorBlack);
-            canvas_draw_rbox(canvas, 0, item_y, 128, 13, 2);
+            canvas_draw_rbox(canvas, 0, item_y, 128, 12, 2);
             canvas_set_color(canvas, ColorWhite);
         } else {
             canvas_set_color(canvas, ColorBlack);
         }
 
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, item_y + 10, AlignCenter, AlignBottom, labels[i]);
+        canvas_draw_str_aligned(canvas, 64, item_y + 9, AlignCenter, AlignBottom, labels[i]);
 
         canvas_set_color(canvas, ColorBlack);
     }
